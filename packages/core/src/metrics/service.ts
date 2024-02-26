@@ -60,10 +60,7 @@ export class MetricsService {
   constructor() {
     this.registry = new prometheus.Registry();
 
-    prometheus.collectDefaultMetrics({
-      register: this.registry,
-      prefix: "ponder_default_",
-    });
+    prometheus.collectDefaultMetrics({ register: this.registry });
 
     this.ponder_rpc_request_duration = new prometheus.Histogram({
       name: "ponder_rpc_request_duration",
