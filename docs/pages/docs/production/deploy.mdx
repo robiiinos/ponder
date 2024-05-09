@@ -8,6 +8,10 @@ import { Callout } from "nextra/components";
 
 # Deploy
 
+- [Railway (recommended)](#railway-recommended)
+- [Render](#render)
+- [Other environments](#other-environments)
+
 ## Railway (recommended)
 
 [Railway](https://railway.app) is currently the best place to deploy Ponder apps. Most Ponder apps cost ~$5 per month, and the deployment process is simple.
@@ -34,16 +38,53 @@ From the Railway console:
   packages/ponder && pnpm start`).
 </Callout>
 
-### Create a Postgres database service
+### Create a PostgreSQL database service
 
-1. From your project's dashboard, click **New** → **Database** → **Add PostgreSQL**.
-2. Go back to your service. Open **Variables** tab and click on **New Variable**
-3. Click on **Add Reference**, select `DATABASE_PRIVATE_URL`, and click on **Add**
+From your project dashboard, click **New** → **Database** → **Add PostgreSQL**.
+
+### Add the `DATABASE_PRIVATE_URL` environment variable
+
+1. Go back to your service. Open **Variables** tab and click on **New Variable**.
+2. Click **Add Reference** → select `DATABASE_PRIVATE_URL` → **Add**.
+
 
 After a moment, your Ponder service should redeploy successfully. Check the **Build Logs** and **Deploy Logs** tabs to debug any issues.
 
 </Steps>
 
+## Render
+
+[Render](https://render.com) is also a great platform for deploying Ponder apps.
+
+<Steps>
+
+### Sign up or log in to Render
+
+Connect your GitHub account, and make sure that your Ponder app has been pushed to remote.
+
+### Create a Ponder app service
+
+From the Render dashboard:
+
+1. Click **New** → **Web Service** → **Build and deploy from a Git repository** → **Next**, then select your repo from the list.
+2. (For monorepos) Set the **Root Directory** to your Ponder project directory (e.g. `packages/ponder`).
+3. Add **Environment Variables**. Be sure to include any RPC URLs (e.g. `PONDER_RPC_URL_1`).
+4. Click **Advanced** → **Health Check Path** and enter `/health`.
+5. Click **Create Web Service**.
+
+### Create a PostgreSQL database service
+
+From your project dashboard, click **New** → **PostgreSQL**, enter a name for the database, and click **Create Database**.
+
+### Add the `DATABASE_PRIVATE_URL` environment variable
+
+1. Go to the database service **Info** tab. Under **Connections**, copy the **Internal Database URL** to your clipboard.
+2. Go to the Ponder service **Environment** tab, and add a new environment variable named `DATABASE_PRIVATE_URL` using the value you copied.
+
+After a moment, the Ponder service should redeploy successfully. Check the **Logs** tab to debug any issues.
+
+</Steps>
+
 ## Other environments
 
-Ponder has not been thoroughly tested on cloud providers other than Railway. However, Ponder apps should work in any environment that supports Node.js and can connect to a Postgres database.
+Ponder has not been thoroughly tested on cloud providers other than Railway and Render. However, Ponder apps should work in any environment that supports Node.js and can connect to a PostgreSQL database.

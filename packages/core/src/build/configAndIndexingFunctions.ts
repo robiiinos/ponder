@@ -75,20 +75,19 @@ export async function buildConfigAndIndexingFunctions({
         )}' (${source})`,
       });
 
+      const railway = getRailwayVariables();
+      const render = getRenderVariables();
+
       let schema: string | undefined = undefined;
       if (config.database.schema) {
         schema = config.database.schema;
         source = "from ponder.config.ts";
-      } else if (process.env.RAILWAY_DEPLOYMENT_ID) {
-        if (process.env.RAILWAY_SERVICE_NAME === undefined) {
-          throw new Error(
-            "Invalid database configuration: RAILWAY_DEPLOYMENT_ID env var is defined, but RAILWAY_SERVICE_NAME env var is not.",
-          );
-        }
-        schema = `${
-          process.env.RAILWAY_SERVICE_NAME
-        }_${process.env.RAILWAY_DEPLOYMENT_ID.slice(0, 8)}`;
+      } else if (railway.hasVariables) {
+        schema = railway.schema;
         source = "from RAILWAY_DEPLOYMENT_ID env var";
+      } else if (render.hasVariables) {
+        schema = render.schema;
+        source = "from RENDER_INSTANCE_ID env var";
       } else {
         schema = "public";
         source = "default";
@@ -102,10 +101,14 @@ export async function buildConfigAndIndexingFunctions({
       if (config.database.publishSchema !== undefined) {
         publishSchema = config.database.publishSchema;
         source = "from ponder.config.ts";
-      } else if (process.env.RAILWAY_DEPLOYMENT_ID !== undefined) {
-        publishSchema = "public";
+      } else if (railway.hasVariables) {
+        publishSchema = railway.publishSchema;
         source = "default for Railway deployment";
+      } else if (render.hasVariables) {
+        publishSchema = render.publishSchema;
+        source = "default for Render deployment";
       }
+
       if (publishSchema !== undefined) {
         logs.push({
           level: "info",
@@ -129,12 +132,7 @@ export async function buildConfigAndIndexingFunctions({
         connectionString,
       };
 
-      databaseConfig = {
-        kind: "postgres",
-        poolConfig,
-        schema,
-        publishSchema,
-      };
+      databaseConfig = { kind: "postgres", poolConfig, schema, publishSchema };
     } else {
       logs.push({
         level: "info",
@@ -163,18 +161,16 @@ export async function buildConfigAndIndexingFunctions({
         )} (${source})`,
       });
 
+      const railway = getRailwayVariables();
+      const render = getRenderVariables();
+
       let schema: string | undefined = undefined;
-      if (process.env.RAILWAY_DEPLOYMENT_ID !== undefined) {
-        schema = process.env.RAILWAY_DEPLOYMENT_ID;
-        if (process.env.RAILWAY_SERVICE_NAME === undefined) {
-          throw new Error(
-            "Invalid database configuration: RAILWAY_DEPLOYMENT_ID env var is defined, but RAILWAY_SERVICE_NAME env var is not.",
-          );
-        }
-        schema = `${
-          process.env.RAILWAY_SERVICE_NAME
-        }_${process.env.RAILWAY_DEPLOYMENT_ID.slice(0, 8)}`;
+      if (railway.hasVariables) {
+        schema = railway.schema;
         source = "from RAILWAY_DEPLOYMENT_ID env var";
+      } else if (render.hasVariables) {
+        schema = render.schema;
+        source = "from RENDER_INSTANCE_ID env var";
       } else {
         schema = "public";
         source = "default";
@@ -185,9 +181,12 @@ export async function buildConfigAndIndexingFunctions({
       });
 
       let publishSchema: string | undefined = undefined;
-      if (process.env.RAILWAY_DEPLOYMENT_ID !== undefined) {
-        publishSchema = "public";
+      if (railway.hasVariables) {
+        publishSchema = railway.publishSchema;
         source = "default for Railway deployment";
+      } else if (render.hasVariables) {
+        publishSchema = render.publishSchema;
+        source = "default for Render deployment";
       }
       if (publishSchema !== undefined) {
         logs.push({
@@ -209,12 +208,7 @@ export async function buildConfigAndIndexingFunctions({
 
       const poolConfig = { max: 30, connectionString };
 
-      databaseConfig = {
-        kind: "postgres",
-        poolConfig,
-        schema,
-        publishSchema,
-      };
+      databaseConfig = { kind: "postgres", poolConfig, schema, publishSchema };
     } else {
       // Fall back to SQLite.
       logs.push({
@@ -774,4 +768,28 @@ export async function safeBuildConfigAndIndexingFunctions({
 function getDatabaseName(connectionString: string) {
   const parsed = (parse as unknown as typeof parse.parse)(connectionString);
   return `${parsed.host}:${parsed.port}/${parsed.database}`;
+}
+
+function getRailwayVariables() {
+  if (process.env.RAILWAY_DEPLOYMENT_ID && process.env.RAILWAY_SERVICE_NAME) {
+    const schema = `${
+      process.env.RAILWAY_SERVICE_NAME
+    }_${process.env.RAILWAY_DEPLOYMENT_ID.slice(0, 7)}`;
+
+    return { hasVariables: true, schema, publishSchema: "public" } as const;
+  } else {
+    return { hasVariables: false } as const;
+  }
+}
+
+function getRenderVariables() {
+  if (process.env.RENDER_INSTANCE_ID && process.env.RENDER_SERVICE_NAME) {
+    const schema = `${
+      process.env.RENDER_SERVICE_NAME
+    }_${process.env.RENDER_INSTANCE_ID.slice(0, 7)}`;
+
+    return { hasVariables: true, schema, publishSchema: "public" } as const;
+  } else {
+    return { hasVariables: false } as const;
+  }
 }
