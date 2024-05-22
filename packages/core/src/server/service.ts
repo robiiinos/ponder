@@ -42,6 +42,33 @@ export async function createServer({
   let isHealthy = false;
   const startTime = Date.now();
 
+  const loggerMiddleware = createMiddleware(async (c, next) => {
+    const method = c.req.method;
+    const url = c.req.raw.url;
+    const queryIndex = url.indexOf("?", 8);
+    const path = url.slice(
+      url.indexOf("/", 8),
+      queryIndex === -1 ? undefined : queryIndex,
+    );
+
+    // TODO: Consider adding a trace level log for beginning of request
+    // common.logger.trace({
+    //   service: "http",
+    //   msg: `${method} ${path}`,
+    // });
+
+    const endClock = startClock();
+
+    await next();
+
+    const duration = endClock();
+
+    common.logger.debug({
+      service: "http",
+      msg: `${method} ${path} -- ${c.res.status} (${duration}ms)`,
+    });
+  });
+
   const metricsMiddleware = createMiddleware(async (c, next) => {
     const commonLabels = { method: c.req.method, path: c.req.path };
     common.metrics.ponder_http_server_active_requests.inc(commonLabels);
@@ -111,6 +138,7 @@ export async function createServer({
 
   hono
     .use(cors())
+    .use(loggerMiddleware)
     .use(metricsMiddleware)
     .get("/metrics", async (c) => {
       try {
