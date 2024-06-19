@@ -59,18 +59,17 @@ import type { deploy } from "./simulate.js";
 // ID of the current test worker. Used by the `@viem/anvil` proxy server.
 export const poolId = Number(process.env.VITEST_POOL_ID ?? 1);
 
+export const rpcUrl = {
+  http: `http://127.0.0.1:8545/${poolId}`,
+  ws: `ws://127.0.0.1:8545/${poolId}`,
+};
+
 export const anvil = {
   ...mainnet, // We are using a mainnet fork for testing.
   id: 1, // We configured our anvil instance to use `1` as the chain id (see `globalSetup.ts`);
   rpcUrls: {
-    default: {
-      http: [`http://127.0.0.1:8545/${poolId}`],
-      webSocket: [`ws://127.0.0.1:8545/${poolId}`],
-    },
-    public: {
-      http: [`http://127.0.0.1:8545/${poolId}`],
-      webSocket: [`ws://127.0.0.1:8545/${poolId}`],
-    },
+    default: { http: [rpcUrl.http], webSocket: [rpcUrl.ws] },
+    public: { http: [rpcUrl.http], webSocket: [rpcUrl.ws] },
   },
 } as const satisfies Chain;
 
@@ -211,6 +210,8 @@ export const getRawRPCData = async (sources: EventSource[]) => {
         ),
     )
   ).flat();
+
+  console.log(logs);
 
   // Manually add the child address log
   logs.push(

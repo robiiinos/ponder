@@ -1,16 +1,18 @@
-import { startProxy } from "@viem/anvil";
 import dotenv from "dotenv";
 import { Pool } from "pg";
+import { createServer } from "prool";
+import { anvil } from "prool/instances";
 
 export default async function () {
   dotenv.config({ path: ".env.local" });
 
-  const shutdownProxy = await startProxy({
-    options: {
-      chainId: 1,
-      noMining: true,
-    },
+  const proolServer = createServer({
+    host: "127.0.0.1",
+    port: 8545,
+    instance: anvil({ chainId: 1 }),
   });
+
+  await proolServer.start();
 
   let cleanupDatabase: () => Promise<void>;
   if (process.env.DATABASE_URL) {
@@ -33,7 +35,7 @@ export default async function () {
   }
 
   return async () => {
-    await shutdownProxy();
+    await proolServer.stop();
     await cleanupDatabase?.();
   };
 }

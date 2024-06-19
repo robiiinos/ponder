@@ -13,12 +13,12 @@ export default defineConfig({
   test: {
     globalSetup: ["src/_test/globalSetup.ts"],
     setupFiles: ["src/_test/setup.ts"],
-    poolOptions: {
-      threads: {
-        maxThreads: 4,
-        minThreads: 1,
-      },
-    },
+    // poolOptions: {
+    //   threads: {
+    //     maxThreads: 4,
+    //     minThreads: 1,
+    //   },
+    // },
     sequence: { hooks: "stack" },
     testTimeout: os.platform() === "win32" ? 30_000 : 10_000,
   },

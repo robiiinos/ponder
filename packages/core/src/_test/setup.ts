@@ -31,10 +31,16 @@ import type { SyncStore } from "@/sync-store/store.js";
 import type { RequestQueue } from "@/utils/requestQueue.js";
 import pg from "pg";
 import { rimrafSync } from "rimraf";
-import type { Address } from "viem";
+import { type Address, HttpRequestError } from "viem";
 import type { TestContext } from "vitest";
 import { deploy, simulate } from "./simulate.js";
-import { getConfig, getNetworkAndSources, testClient } from "./utils.js";
+import {
+  getConfig,
+  getNetworkAndSources,
+  publicClient,
+  rpcUrl,
+  testClient,
+} from "./utils.js";
 
 declare module "vitest" {
   export interface TestContext {
@@ -267,12 +273,29 @@ export async function setupDatabaseServices(
  * ```
  */
 export async function setupAnvil(context: TestContext) {
+  // First, start the Anvil instance if it's not already running.
+  try {
+    await publicClient.getChainId();
+  } catch (error) {
+    console.log(error);
+    if (error instanceof HttpRequestError) {
+      console.log("starting anvil");
+      await fetch(`${rpcUrl.http}/start`);
+    } else {
+      throw error;
+    }
+  }
+
   const emptySnapshotId = await testClient.snapshot();
+
+  console.log(emptySnapshotId);
 
   // Chain state setup shared across all tests.
   const addresses = await deploy();
   const pair = await simulate(addresses);
   await testClient.mine({ blocks: 1 });
+
+  console.log(addresses);
 
   context.config = getConfig(addresses);
 
