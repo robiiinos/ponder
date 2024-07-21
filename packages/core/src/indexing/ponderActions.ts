@@ -1,7 +1,6 @@
 import { getTables } from "@/schema/utils.js";
 import type { Prettify } from "@/types/utils.js";
 import type {
-  Abi,
   Account,
   Chain,
   Client,
@@ -17,8 +16,6 @@ import type {
   MulticallParameters,
   MulticallReturnType,
   PublicRpcSchema,
-  ReadContractParameters,
-  ReadContractReturnType,
   Transport,
 } from "viem";
 import {
@@ -27,7 +24,6 @@ import {
   getEnsName as viemGetEnsName,
   getStorageAt as viemGetStorageAt,
   multicall as viemMulticall,
-  readContract as viemReadContract,
 } from "viem/actions";
 import type { Service, create } from "./service.js";
 
@@ -70,16 +66,6 @@ export type PonderActions = {
     > &
       BlockOptions,
   ) => Promise<MulticallReturnType<TContracts, TAllowFailure>>;
-  readContract: <
-    const TAbi extends Abi | readonly unknown[],
-    TFunctionName extends string,
-  >(
-    args: Omit<
-      ReadContractParameters<TAbi, TFunctionName>,
-      "blockTag" | "blockNumber"
-    > &
-      BlockOptions,
-  ) => Promise<ReadContractReturnType<TAbi, TFunctionName>>;
 };
 
 export type ReadOnlyClient<
@@ -165,25 +151,6 @@ export const buildCachedActions = (
           ? { blockTag: "latest" }
           : { blockNumber: userBlockNumber ?? contextState.blockNumber }),
       }),
-    // @ts-ignore
-    readContract: <
-      const TAbi extends Abi | readonly unknown[],
-      TFunctionName extends string,
-    >({
-      cache,
-      blockNumber: userBlockNumber,
-      ...args
-    }: Omit<
-      ReadContractParameters<TAbi, TFunctionName>,
-      "blockTag" | "blockNumber"
-    > &
-      BlockOptions): Promise<ReadContractReturnType<TAbi, TFunctionName>> =>
-      viemReadContract(client, {
-        ...args,
-        ...(cache === "immutable"
-          ? { blockTag: "latest" }
-          : { blockNumber: userBlockNumber ?? contextState.blockNumber }),
-      } as ReadContractParameters<TAbi, TFunctionName>),
   });
 };
 
